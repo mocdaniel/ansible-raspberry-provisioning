@@ -1,0 +1,62 @@
+---
+name: Molecule test
+on:
+  push:
+    tags:
+    - v*
+    branches:
+    - main
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out the repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python3.X
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install test dependencies
+      run: pip3 install yamllint ansible-lint
+
+    - name: Lint repository
+      run: |
+        yamllint .
+        ansible-lint .
+
+  molecule_default:
+    runs-on: ubuntu-latest
+    needs: lint
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        distro: [rockylinux8]
+        scenario: [default]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+
+      - name: Test with molecule
+        run: |
+          molecule test -s ${{ matrix.scenario }}
+        env:
+          MOLECULE_DISTRO: ${{ matrix.distro }}
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+          MOLECULE_DOCKER_COMMAND: /sbin/init

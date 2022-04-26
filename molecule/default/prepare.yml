@@ -1,0 +1,17 @@
+---
+- name: Install SSHD on all machines
+  hosts: all
+  become: yes
+  tasks:
+  - name: Install SSHD
+    yum:
+      name: openssh-server
+      state: present
+    notify: Enable and start SSHD
+
+  handlers:
+  - name: Enable and start SSHD
+    systemd:
+      name: sshd
+      state: started
+      enabled: yes

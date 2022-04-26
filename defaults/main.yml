@@ -1,0 +1,5 @@
+---
+# defaults file for raspi_provisioning
+username: raspi_user
+ssh_key: ~{{ username }}/.ssh/raspi_key.pub
+domain: intranet.domain

@@ -1,0 +1,113 @@
+---
+# tasks file for raspi_provisioning
+
+- name: Add <hostname>.{{ domain }} entries to /etc/hosts
+  tags: notest
+  template:
+    src: hosts.j2
+    dest: /etc/hosts
+    mode: '0644'
+    owner: root
+    group: root
+
+- name: Set host name to <hostname>
+  hostname:
+    name: "{{ inventory_hostname }}"
+    use: systemd
+
+- name: Enlargen root partition
+  command: rootfs-expand
+  register: command_result
+  failed_when: "'failed' in command_result.stderr"
+  changed_when: no
+
+- name: Add user {{ username }}
+  user:
+    name: "{{ username }}"
+    groups: wheel
+    append: yes
+    password: "{{ password | password_hash('sha512') }}"
+    update_password: on_create
+
+- name: Copy pubkey for user {{ username }}
+  tags: notest
+  ansible.posix.authorized_key:
+    user: "{{ username }}"
+    state: present
+    key: "{{ lookup('file', ssh_key) }}"
+
+- name: Update yum cache and upgrade everything
+  yum:
+    update_cache: yes
+    name: '*'
+    state: latest
+
+- name: Install required software
+  yum:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - dhclient
+
+
+###### TAKEN FROM https://blog.weltraumschaf.de/blog/Hardening-Your-SSHd-with-Ansible/ ###
+- name: Set SSH KexAlgorithms
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    state: present
+    line: 'KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256'
+  notify:
+  - Restart sshd
+
+- name: Set SSH Ciphers
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    state: present
+    line: 'Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr'
+  notify:
+  - Restart sshd
+
+- name: Set SSH MACs
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    state: present
+    line: 'MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com'
+  notify:
+  - Restart sshd
+
+- name: Set SSH loglevel to verbose
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#LogLevel INFO'
+    line: 'LogLevel VERBOSE'
+  notify:
+  - Restart sshd
+
+- name: Disable SSH root login
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#PermitRootLogin'
+    line: 'PermitRootLogin no'
+  notify:
+  - Restart sshd
+
+- name: Disable SSH password authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#PasswordAuthentication yes'
+    line: 'PasswordAuthentication no'
+  notify:
+  - Restart sshd
+
+- name: Set SSH AuthenticationMethods
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    state: present
+    line: 'AuthenticationMethods publickey'
+  notify:
+  - Restart sshd
+
+- name: Validate sshd config
+  command: sshd -t
+  register: command_output
+  changed_when: command_output.stderr | length > 0
