@@ -15,6 +15,10 @@
     name: "{{ inventory_hostname }}"
     use: systemd
 
+- name: Set timezone to {{ timezone }}
+  community.general.timezone:
+    name: "{{ timezone }}"
+
 - name: Enlargen root partition
   command: rootfs-expand
   register: command_result

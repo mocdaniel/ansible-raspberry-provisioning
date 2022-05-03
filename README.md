@@ -3,8 +3,9 @@
 This Ansible role provisions Raspberry Pis with some basic configuration such as:
 
 - [x] SSH hardening
+- [X] Timezone settings
 - [x] Creating a defined `sudo` user including SSH keys and a password
-- [x] Configurating network-related settings, i.e. `/etc/hosts` entries and the actual host name
+- [x] Configuring network-related settings, i.e. `/etc/hosts` entries and the actual host name
 - [x] Expanding the `root` partition (Rockylinux takes just 3GB on flashing)
 - [x] Updating package cache and executing pending upgrades
 - [x] Installing some additional tools that might come in handy
@@ -71,6 +72,7 @@ All other options can be set in [`defaults/main.yml`](defaults/main.yml):
 | username         | `raspi_user`                 | **yes**  | the name of your future user, it will get sudo rights        |
 | ssh_key          | `~/.ssh/raspi_key.pub`       | **yes**  | path to the SSH key you will use for logging onto the system |
 | domain           | `intranet_domain`            | **no**   | the domain name you want to use, if you have one             |
+| timezone         | `Europe/Berlin`              | **yes**  | should be one of the timezones available via `list-timezones`|
 
 Thus, a valid execution of this role could look something like this:
 
