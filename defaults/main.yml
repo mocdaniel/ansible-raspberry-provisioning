@@ -3,3 +3,4 @@
 username: raspi_user
 ssh_key: ~{{ username }}/.ssh/raspi_key.pub
 domain: intranet.domain
+timezone: Europe/Berlin
